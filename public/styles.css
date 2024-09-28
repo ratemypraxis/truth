@@ -1,0 +1,23 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0;
+    text-align: center;
+}
+
+.container {
+    position: relative;
+}
+
+#presentButton {
+    padding: 20px;
+    font-size: 24px;
+}
+
+#message {
+    font-size: 24px;
+    margin-top: 20px;
+}
