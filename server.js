@@ -1,55 +1,49 @@
 const express = require('express');
 const WebSocket = require('ws');
-const https = require('https');
 const http = require('http');
-const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-
-const options = {
-    key: fs.readFileSync(process.env.SSL_KEY_PATH),
-    cert: fs.readFileSync(process.env.SSL_CERT_PATH),
-};
-
-const httpsServer = https.createServer(options, app);
-const wss = new WebSocket.Server({ server: httpsServer });
-
-const httpServer = http.createServer((req, res) => {
-    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-    res.end();
-});
+const httpServer = http.createServer(app);
+const wss = new WebSocket.Server({ server: httpServer });
 
 const uniqueVisitors = new Set();
 const buttonClicks = new Set();
-const videoThreshold = 3;
+//to adjust required number of users on page -- currenlty 300
+const videoThreshold = 300; 
 const videoUrl = process.env.VIDEO_URL; 
 let isVideoUnlocked = false;
+
+console.log(`Loaded password: '${process.env.PASSWORD}'`);
+
+//will unlock and play video at 10.20.24 midnight ET 
+//note pls change url for yt video in .env
+const dateThreshold = new Date('2024-10-20T04:00:00Z');
 
 app.use(express.static('public'));
 
 wss.on('connection', (ws) => {
     const ip = ws._socket.remoteAddress;
     uniqueVisitors.add(ip);
-    console.log(`new friend ${ip}. total friends: ${uniqueVisitors.size}`);
-
-    // Check if the video is unlocked
-    if (isVideoUnlocked) {
-        // Redirect existing users to the video URL
-        ws.send(JSON.stringify({ action: 'redirectToVideo', videoUrl }));
-    }
+    console.log(`New connection from ${ip}. Total visitors: ${uniqueVisitors.size}`);
 
     ws.on('message', (message) => {
         const msg = JSON.parse(message);
         console.log(`Received message: ${JSON.stringify(msg)}`);
 
         if (msg.action === 'verifyPassword') {
-            if (msg.password === 'special') {
+            console.log(`User entered password: '${msg.password}'`);
+            console.log(`Expected password: '${process.env.PASSWORD}'`);
+
+            if (msg.password.trim() === process.env.PASSWORD) {
                 buttonClicks.add(ip);
                 const count = buttonClicks.size;
 
                 console.log(`Password verified for ${ip}. Total clicks: ${count}`);
-                ws.send(JSON.stringify({ action: 'passwordVerified', count }));
+
+                if (new Date() < dateThreshold) {
+                    ws.send(JSON.stringify({ action: 'showMessage', message: 'The truth demands witnesses. 10 16 24' }));
+                }
 
                 wss.clients.forEach(client => {
                     if (client.readyState === WebSocket.OPEN) {
@@ -57,8 +51,8 @@ wss.on('connection', (ws) => {
                     }
                 });
 
-                if (count >= videoThreshold && !isVideoUnlocked) {
-                    isVideoUnlocked = true; 
+                if (new Date() >= dateThreshold && count >= videoThreshold && !isVideoUnlocked) {
+                    isVideoUnlocked = true;
                     console.log(`Video unlocked for all users.`);
                     wss.clients.forEach(client => {
                         if (client.readyState === WebSocket.OPEN) {
@@ -67,7 +61,7 @@ wss.on('connection', (ws) => {
                     });
                 }
             } else {
-                console.log(`wrong pass ${ip}`);
+                console.log(`Incorrect password for ${ip}`);
                 ws.send(JSON.stringify({ action: 'passwordDenied' }));
             }
         }
@@ -89,13 +83,22 @@ wss.on('connection', (ws) => {
     const initialCount = buttonClicks.size;
     console.log(`Sending initial count of ${initialCount} to ${ip}`);
     ws.send(JSON.stringify({ action: 'updateCount', count: initialCount }));
+
+    const intervalId = setInterval(() => {
+        if (new Date() >= dateThreshold && !isVideoUnlocked) {
+            isVideoUnlocked = true;
+            console.log(`Time threshold reached. Redirecting all users to video.`);
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({ action: 'redirectToVideo', videoUrl }));
+                }
+            });
+            clearInterval(intervalId); 
+        }
+    }, 1000); 
 });
 
-
-httpsServer.listen(443, () => {
-    console.log('HTTPS server is listening on port 443');
-});
-
-httpServer.listen(80, () => {
-    console.log('HTTP server is listening on port 80 and redirecting to HTTPS');
+//change port to 80 and/or 443 when deployes
+httpServer.listen(3000, () => {
+    console.log('HTTP server is listening on port 3000');
 });

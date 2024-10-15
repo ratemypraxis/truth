@@ -16,7 +16,7 @@ body, html {
 .input-group {
     display: flex;
     align-items: center;
-    justify-content: center; /* Center the input and button */
+    justify-content: center;
 }
 
 #passwordInput {
@@ -44,14 +44,14 @@ body, html {
 
 @media (max-width: 600px) {
     .input-group {
-        flex-direction: column; /* Stack vertically on mobile */
-        width: 100%; /* Take full width */
-        align-items: center; /* Center align items */
+        flex-direction: column; 
+        width: 100%; 
+        align-items: center; 
     }
 
     #passwordInput {
-        width: 80%; /* Make it smaller for mobile */
-        margin-bottom: 10px; /* Space between input and button */
+        width: 80%; 
+        margin-bottom: 10px; 
     }
 
     #enterButton {
