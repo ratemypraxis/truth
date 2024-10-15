@@ -42,7 +42,7 @@ wss.on('connection', (ws) => {
                 console.log(`Password verified for ${ip}. Total clicks: ${count}`);
 
                 if (new Date() < dateThreshold) {
-                    ws.send(JSON.stringify({ action: 'showMessage', message: 'The truth demands witnesses. 10 16 24' }));
+                    ws.send(JSON.stringify({ action: 'showMessage', message: 'The truth demands witnesses. 10 20 24' }));
                 }
 
                 wss.clients.forEach(client => {
